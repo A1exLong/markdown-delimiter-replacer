@@ -1,0 +1,84 @@
+name: Windows EXE Build and Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and test Windows x64
+    runs-on: windows-2022
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          architecture: x64
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Run tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Build EXE with PyInstaller
+        run: python -m PyInstaller --clean --noconfirm MarkdownDelimiterReplacer.spec
+
+      - name: Prepare EXE and SHA-256 checksum
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $exe = 'dist/MarkdownDelimiterReplacer.exe'
+          if (-not (Test-Path $exe)) { throw 'PyInstaller did not produce the expected EXE.' }
+          New-Item -Path release -ItemType Directory -Force | Out-Null
+          Copy-Item $exe 'release/MarkdownDelimiterReplacer.exe'
+          $hash = (Get-FileHash -Path 'release/MarkdownDelimiterReplacer.exe' -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  MarkdownDelimiterReplacer.exe" | Set-Content -Path 'release/SHA256SUMS.txt' -Encoding ascii
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MarkdownDelimiterReplacer-windows-x64
+          path: release/
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download tested build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: MarkdownDelimiterReplacer-windows-x64
+          path: release/
+
+      - name: Publish release and EXE
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          test -f release/MarkdownDelimiterReplacer.exe
+          test -f release/SHA256SUMS.txt
+          gh release create "$TAG_NAME" \
+            release/MarkdownDelimiterReplacer.exe \
+            release/SHA256SUMS.txt \
+            --verify-tag \
+            --generate-notes \
+            --title "Markdown Delimiter Replacer $TAG_NAME"
