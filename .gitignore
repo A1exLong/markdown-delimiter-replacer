@@ -1,0 +1,37 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# Environments
+.venv/
+venv/
+env/
+
+# PyInstaller builds (keep the tracked .spec)
+build/
+dist/
+*.exe
+*.app/
+
+# Local user settings (may contain private file paths)
+/config.json
+
+# Temporary files and backups
+*.bak
+*.bak.[0-9]*
+*.tmp
+*.log
+
+# IDE / OS files
+.vscode/
+.idea/
+.vs/
+.DS_Store
+Thumbs.db
+Desktop.ini

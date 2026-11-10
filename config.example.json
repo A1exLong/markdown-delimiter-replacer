@@ -1,0 +1,18 @@
+{
+  "mode": "file",
+  "last_path": "",
+  "rules": [
+    {
+      "source": "\\(",
+      "replacement": "$",
+      "regex": false
+    },
+    {
+      "source": "\\)",
+      "replacement": "$",
+      "regex": false
+    }
+  ],
+  "create_backup": true,
+  "open_after_process": true
+}
